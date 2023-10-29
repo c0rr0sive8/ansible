@@ -1,0 +1,28 @@
+---
+- name: Check and Delete Directory Contents if Size Exceeds 5GB and Subdirectories > 2
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Get the size of a directory
+      shell: du -s /home/test | awk '{print $1}'
+      register: directory_size
+
+    - name: Check the number of subdirectories
+      shell: find /home/test -mindepth 1 -type d | wc -l
+      register: subdirectory_count
+
+    - name: Check directory size and subdirectory count
+      debug:
+        msg: "Directory size exceeds 5GB and has more than 2 subdirectories. Deleting contents..."
+      when:
+        - directory_size.stdout|int > 5242880  # 5GB in Kibibytes
+        - subdirectory_count.stdout|int > 2
+
+    - name: Delete directory contents
+      shell: rm -rf /home/test/*
+      args:
+        warn: false
+      when:
+        - directory_size.stdout|int > 5242880  # 5GB in Kibibytes 
+        - subdirectory_count.stdout|int > 2
